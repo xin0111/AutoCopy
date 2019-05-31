@@ -71,15 +71,6 @@
     <ClCompile Include="GeneratedFiles\Release\moc_editwidgets.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
-    <ClCompile Include="addRuleEntry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_addRuleEntry.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_addRuleEntry.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
     <ClCompile Include="autoCopyWidget.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -87,33 +78,6 @@
       <Filter>Generated Files\Debug</Filter>
     </ClCompile>
     <ClCompile Include="GeneratedFiles\Release\moc_autoCopyWidget.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
-    <ClCompile Include="CopyPage.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_CopyPage.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_CopyPage.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
-    <ClCompile Include="fileslistwidget.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_fileslistwidget.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_fileslistwidget.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
-    <ClCompile Include="FileDirList.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_FileDirList.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_FileDirList.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
     <ClCompile Include="3dParty\singleapplication.cpp">
@@ -145,29 +109,11 @@
     <CustomBuild Include="editwidgets.h">
       <Filter>Header Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="addRuleEntry.h">
-      <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="addRuleEntry.ui">
-      <Filter>Form Files</Filter>
-    </CustomBuild>
     <CustomBuild Include="autoCopyWidget.h">
       <Filter>Header Files</Filter>
     </CustomBuild>
     <CustomBuild Include="autoCopyWidget.ui">
       <Filter>Form Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="CopyPage.h">
-      <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="copypage.ui">
-      <Filter>Form Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="fileslistwidget.h">
-      <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="FileDirList.h">
-      <Filter>Header Files</Filter>
     </CustomBuild>
     <CustomBuild Include="3dParty\singleapplication.h">
       <Filter>Header Files</Filter>
@@ -186,17 +132,11 @@
     <ClInclude Include="BlockingQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GeneratedFiles\ui_addRuleEntry.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_autoCopyWidget.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="autocopy.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GeneratedFiles\ui_copypage.h">
-      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

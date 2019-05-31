@@ -6,9 +6,12 @@
 #include <QThreadPool>
 #include <QDebug>
 #include <QDir>
-#include "Tools.h"
+#include <fstream>
+#include <sstream>
+
 #include "autocopy.h"
 #include "autoruleview.h"
+#include "Tools.h"
 
 class CopyTask :public QRunnable
 {
@@ -39,7 +42,6 @@ private:
 	AutoCopySchedule::emTaskType m_taskType;
 };
 
-
 AutoCopySchedule::AutoCopySchedule(QFileSystemWatcher* fileWatcher, QFileSystemWatcher* directoryWatcher,
 	AutoRuleModel* model) :
 m_fileWatcher(fileWatcher),
@@ -54,11 +56,9 @@ void AutoCopySchedule::copyFileTask(const QString& filePath, emTaskType eType/*=
 	if (QFile::exists(filePath) || eType == COPYFILEINIT)
 	{
 		CopyTask *copyTask = new CopyTask(this, filePath, eType);
-		m_tasksQueue.put(copyTask);
-		//QThreadPool::globalInstance()->start(copyTask);
+		m_tasksQueue.put(copyTask);	
 	}
 }
-
 
 void AutoCopySchedule::copyExist()
 {
@@ -128,11 +128,36 @@ AutoCopyPropertyList AutoCopySchedule::importFileRules(const QString& filePath)
 	{		
 		AutoCopyProperty prop;
 		prop.Key = ruleNodes.at(rule).toElement().attribute("src");
-		prop.KeyType = AutoCopyProperty::FILEANDPATH;
+		prop.KeyType = AutoCopyProperty::FILE;
 		prop.Value = ruleNodes.at(rule).toElement().attribute("dest");
 		prop.ValueType = AutoCopyProperty::PATH;
 		rules << prop;
 	}
+	return rules;
+}
+
+AutoCopyPropertyList AutoCopySchedule::importRulesBat(const QString& filePath)
+{
+	AutoCopyPropertyList rules;
+
+	std::fstream fin(filePath.toStdString());
+	std::string strLine;
+	while (getline(fin,strLine))
+	{
+		QString qstrLine = QString::fromStdString(strLine);
+		if (qstrLine.startsWith("copy"))
+		{
+			QStringList pathInfos = qstrLine.split(" ", QString::SkipEmptyParts);
+			if (pathInfos.size() < 3 ) continue;
+			AutoCopyProperty prop;
+			prop.Key = pathInfos[1];
+			prop.KeyType = AutoCopyProperty::FILE;
+			prop.Value = pathInfos[2];
+			prop.ValueType = AutoCopyProperty::PATH;
+			rules << prop;
+		}
+	}
+	fin.close();
 	return rules;
 }
 
@@ -153,11 +178,30 @@ void AutoCopySchedule::exportFileRules(const QString& filePath, const AutoCopyPr
 	sig_tipMessage(QString::fromLocal8Bit("导出完成."));
 }
 
+void AutoCopySchedule::exportRulesBat(const QString& filePath, const AutoCopyPropertyList& rules)
+{
+	std::ofstream ofs;
+	ofs.open(filePath.toStdString(), std::ofstream::trunc);
+	int nAuto = rules.size();
+	for (int i = 0; i < nAuto; i++)
+	{
+		QString rule = QString("copy %1 %2").arg(rules.at(i).Key).arg(rules.at(i).Value.toString());	
+
+		ofs.write(rule.toStdString().c_str(), rule.size());
+		ofs<<"\n";
+	}	
+	ofs.close();
+
+	sig_tipMessage(QString::fromLocal8Bit("导出完成."));
+}
+
 void AutoCopySchedule::updateWatcherDirectory(const QString& root)
 {
 	//如果文件已删除，需要重新添加
 	const QDir dir(root);
-	QFileInfoList firstEntryList = dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs | QDir::Files | QDir::Modified);
+	//QDir::NoDotAndDotDot | QDir::AllDirs | QDir::Files | QDir::Modified
+	//file only
+	QFileInfoList firstEntryList = dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Files | QDir::Modified);
 	QString filePath;
 	QStringList fileInWatcher = m_fileWatcher->files();
 	QStringList dirInWatcher = m_directoryWatcher->directories();
@@ -265,9 +309,6 @@ void AutoCopySchedule::run()
 		{
 			QRunnable *task = m_tasksQueue.take();
 			task->run();
-			if (task->autoDelete()) {
-				delete task;
-			}
 		}
 	}
 }

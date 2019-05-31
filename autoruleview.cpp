@@ -10,6 +10,7 @@
 #include <QMetaProperty>
 #include <QSortFilterProxyModel>
 #include <QStyle>
+#include <QMenu>
 
 #include "editwidgets.h"
 
@@ -116,16 +117,29 @@ AutoRuleView::AutoRuleView(QWidget* p)
 
   // our delegate for creating our editors
   AutoRuleModelDelegate* delegate = new AutoRuleModelDelegate(this);
+  connect(delegate, SIGNAL(sig_addEditedTask(const QString& )), 
+	  this, SIGNAL(sig_addEditedTask(const QString& )));
+
   this->setItemDelegate(delegate);  
 
   this->setUniformRowHeights(true);
 
-  this->setEditTriggers(QAbstractItemView::AllEditTriggers);
+  this->setEditTriggers(QAbstractItemView::DoubleClicked);
 
   // tab, backtab doesn't step through items
   this->setTabKeyNavigation(false);
 
   this->setRootIsDecorated(false);
+
+  this->setContextMenuPolicy(Qt::CustomContextMenu);
+  m_pMenu = new QMenu(this);  
+  m_pMenu->addAction(QString::fromLocal8Bit("Ìí¼Ó"), this, [=]{
+	  CacheModel->insertProperty(AutoCopyProperty::FILE, AutoCopyProperty::PATH, "", "",
+		  "", false);
+  });
+  connect(this, &QTreeView::customContextMenuRequested, [=](const QPoint&p){
+	  m_pMenu->exec(mapToGlobal(p));
+  });
 }
 
 bool AutoRuleView::event(QEvent* e)
@@ -174,11 +188,28 @@ void AutoRuleView::setSearchFilter(const QString& s)
   this->SearchFilter->setFilterFixedString(s);
 }
 
+void AutoRuleView::keyPressEvent(QKeyEvent *event) 
+{
+	if (event->key() == Qt::Key_Delete)
+	{
+		QModelIndexList idxs = selectionModel()->selectedRows();
+		QList<QPersistentModelIndex> pidxs;
+		foreach(QModelIndex const& i, idxs) {
+			pidxs.append(i);
+		}
+		foreach(QPersistentModelIndex const& pi, pidxs) {
+			model()->removeRow(pi.row(), pi.parent());
+		}
+
+		emit sig_updateSchedule();
+	}
+	QTreeView::keyPressEvent(event);
+}
+
 AutoRuleModel::AutoRuleModel(QObject* p)
   : QStandardItemModel(p)
   , EditEnabled(true)
   , NewPropertyCount(0)
-  , View(FlatView)
 {
   this->ShowNewProperties = true;
   QStringList labels;
@@ -210,129 +241,6 @@ void AutoRuleModel::clear()
   this->setHorizontalHeaderLabels(labels);
 }
 
-void AutoRuleModel::setProperties(const AutoCopyPropertyList& props)
-{
-  QSet<AutoCopyProperty> newProps, newProps2;
-
-  if (this->ShowNewProperties) {
-    newProps = props.toSet();
-    newProps2 = newProps;
-    QSet<AutoCopyProperty> oldProps = this->properties().toSet();
-    oldProps.intersect(newProps);
-    newProps.subtract(oldProps);
-    newProps2.subtract(newProps);
-  } else {
-    newProps2 = props.toSet();
-  }
-
-  bool b = this->blockSignals(true);
-
-  this->clear();
-  this->NewPropertyCount = newProps.size();
-
-  if (View == FlatView) {
-	  AutoCopyPropertyList newP = newProps.toList();
-	  AutoCopyPropertyList newP2 = newProps2.toList();
-    qSort(newP);
-    qSort(newP2);
-    int row_count = 0;
-    foreach (AutoCopyProperty const& p, newP) {
-      this->insertRow(row_count);
-      this->setPropertyData(this->index(row_count, 0), p, true);
-      row_count++;
-    }
-    foreach (AutoCopyProperty const& p, newP2) {
-      this->insertRow(row_count);
-      this->setPropertyData(this->index(row_count, 0), p, false);
-      row_count++;
-    }
-  } else if (this->View == GroupView) {
-	  QMap<QString, AutoCopyPropertyList> newPropsTree;
-    this->breakProperties(newProps, newPropsTree);
-	QMap<QString, AutoCopyPropertyList> newPropsTree2;
-    this->breakProperties(newProps2, newPropsTree2);
-
-    QStandardItem* root = this->invisibleRootItem();
-
-	for (QMap<QString, AutoCopyPropertyList>::const_iterator iter =
-           newPropsTree.begin();
-         iter != newPropsTree.end(); ++iter) {
-      QString const& key = iter.key();
-	  AutoCopyPropertyList const& props2 = iter.value();
-
-      QList<QStandardItem*> parentItems;
-      parentItems.append(
-        new QStandardItem(key.isEmpty() ? tr("Ungrouped Entries") : key));
-      parentItems.append(new QStandardItem());
-      parentItems[0]->setData(QBrush(QColor(255, 100, 100)),
-                              Qt::BackgroundColorRole);
-      parentItems[1]->setData(QBrush(QColor(255, 100, 100)),
-                              Qt::BackgroundColorRole);
-      parentItems[0]->setData(1, GroupRole);
-      parentItems[1]->setData(1, GroupRole);
-      root->appendRow(parentItems);
-
-      int num = props2.size();
-      for (int i = 0; i < num; i++) {
-        AutoCopyProperty prop = props2[i];
-        QList<QStandardItem*> items;
-        items.append(new QStandardItem());
-        items.append(new QStandardItem());
-        parentItems[0]->appendRow(items);
-        this->setPropertyData(this->indexFromItem(items[0]), prop, true);
-      }
-    }
-
-	for (QMap<QString, AutoCopyPropertyList>::const_iterator iter =
-           newPropsTree2.begin();
-         iter != newPropsTree2.end(); ++iter) {
-      QString const& key = iter.key();
-	  AutoCopyPropertyList const& props2 = iter.value();
-
-      QStandardItem* parentItem =
-        new QStandardItem(key.isEmpty() ? tr("Ungrouped Entries") : key);
-      root->appendRow(parentItem);
-      parentItem->setData(1, GroupRole);
-
-      int num = props2.size();
-      for (int i = 0; i < num; i++) {
-        AutoCopyProperty prop = props2[i];
-        QList<QStandardItem*> items;
-        items.append(new QStandardItem());
-        items.append(new QStandardItem());
-        parentItem->appendRow(items);
-        this->setPropertyData(this->indexFromItem(items[0]), prop, false);
-      }
-    }
-  }
-
-  this->blockSignals(b);
-}
-
-AutoRuleModel::ViewType AutoRuleModel::viewType() const
-{
-  return this->View;
-}
-
-void AutoRuleModel::setViewType(AutoRuleModel::ViewType t)
-{
-  this->View = t;
-
-  AutoCopyPropertyList props = this->properties();
-  AutoCopyPropertyList oldProps;
-  int numNew = this->NewPropertyCount;
-  int numTotal = props.count();
-  for (int i = numNew; i < numTotal; i++) {
-    oldProps.append(props[i]);
-  }
-
-  bool b = this->blockSignals(true);
-  this->clear();
-  this->setProperties(oldProps);
-  this->setProperties(props);
-  this->blockSignals(b);
-}
-
 void AutoRuleModel::setPropertyData(const QModelIndex& idx1,
                                        const AutoCopyProperty& prop, bool isNew)
 {
@@ -355,14 +263,11 @@ void AutoRuleModel::setPropertyData(const QModelIndex& idx1,
   if (!prop.Strings.isEmpty()) {
     this->setData(idx1, prop.Strings, AutoRuleModel::StringsRole);
   }
-
+  if (!QFile::exists(prop.Key))
+	  this->setData(idx1, QColor(255, 100, 100), Qt::BackgroundRole);
+  if (!QFile::exists(prop.Value.toString()))
+	  this->setData(idx2, QColor(255, 100, 100), Qt::BackgroundRole);
   Q_UNUSED(isNew);
-  //if (isNew) {
-  //  this->setData(idx1, QBrush(QColor(255, 100, 100)),
-  //                Qt::BackgroundColorRole);
-  //  this->setData(idx2, QBrush(QColor(255, 100, 100)),
-  //                Qt::BackgroundColorRole);
-  //}
 }
 
 void AutoRuleModel::updatePropertyAdvance()
@@ -555,19 +460,19 @@ QWidget* AutoRuleModelDelegate::createEditor(
   }
   if (type == AutoCopyProperty::PATH) {
     RulePathEditor* editor =
-      new RulePathEditor(p, var.data(Qt::DisplayRole).toString());
+		new RulePathEditor(p, var.data(Qt::DisplayRole).toString());
     QObject::connect(editor, SIGNAL(fileDialogExists(bool)), this,
                      SLOT(setFileDialogFlag(bool)));
     return editor;
   }
-  if (type == AutoCopyProperty::FILEPATH) {
+  if (type == AutoCopyProperty::FILE) {
     RuleFilePathEditor* editor =
-      new RuleFilePathEditor(p, var.data(Qt::DisplayRole).toString());
+		new RuleFilePathEditor(p, var.data(Qt::DisplayRole).toString());
     QObject::connect(editor, SIGNAL(fileDialogExists(bool)), this,
                      SLOT(setFileDialogFlag(bool)));
     return editor;
   }
-  if (type == AutoCopyProperty::FILEANDPATH) {
+  if (type == AutoCopyProperty::FILE_PATH) {
 	  RuleFilePathEditor* editor =
 		  new RuleFilePathEditor(p, var.data(Qt::DisplayRole).toString());
 	  editor->setPathEnable(true);
@@ -700,5 +605,15 @@ void AutoRuleModelDelegate::recordChange(QAbstractItemModel* model,
     }
     // now add the new item
     mChanges.insert(prop);
+
+	//
+	if (QFile::exists(prop.Key)
+		&& QFile::exists(prop.Value.toString()))
+	{
+		cache_model->setData(idx, QColor(255, 255, 255), Qt::BackgroundRole);
+		cache_model->setData(idx.sibling(idx.row(), 1), QColor(255, 255, 255), Qt::BackgroundRole);
+		sig_addEditedTask(prop.Key);
+	}
   }
 }
+

@@ -30,19 +30,24 @@ public:
 
   QSize sizeHint() const { return QSize(200, 200); }
 
+protected:
+	void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
 public slots:
   // set whether to show advanced entries
   void setShowAdvanced(bool);
   // set the search filter string.  any property key or value not matching will
   // be filtered out
   void setSearchFilter(const QString&);
-
+signals:
+  void sig_addEditedTask(const QString&);
+  void sig_updateSchedule();
 protected:
   QModelIndex moveCursor(CursorAction, Qt::KeyboardModifiers);
   bool event(QEvent* e);
   AutoRuleModel* CacheModel;
   RuleAdvancedFilter* AdvancedFilter;
   QSortFilterProxyModel* SearchFilter;
+  QMenu* m_pMenu;
 };
 
 /// Qt model class for cache properties
@@ -65,18 +70,7 @@ public:
     GroupRole
   };
 
-  enum ViewType
-  {
-    FlatView,
-    GroupView
-  };
-
 public slots:
-  // set a list of properties.  This list will be sorted and grouped according
-  // to prefix.  Any property that existed already and which is found in this
-  // list of properties to set will become an old property.  All others will
-  // become new properties and be marked red.
-void setProperties(const AutoCopyPropertyList& props);
 
   // set whether to show new properties in red
   void setShowNewProperties(bool);
@@ -93,11 +87,6 @@ void setProperties(const AutoCopyPropertyList& props);
 					  AutoCopyProperty::PropertyType valuet, const QString& name,
                       const QString& description, const QVariant& value,
                       bool advanced);
-
-  // set the view type
-  void setViewType(ViewType t);
-  ViewType viewType() const;
-
 public:
   // get the properties
 	AutoCopyPropertyList properties() const;
@@ -120,7 +109,6 @@ protected:
   bool EditEnabled;
   int NewPropertyCount;
   bool ShowNewProperties;
-  ViewType View;
 
   // set the data in the model for this property
   void setPropertyData(const QModelIndex& idx1, const AutoCopyProperty& p,
@@ -159,7 +147,8 @@ public:
 
 protected slots:
   void setFileDialogFlag(bool);
-
+signals:
+  void sig_addEditedTask(const QString&);
 protected:
   bool FileDialogFlag;
   // record a change to an item in the model.

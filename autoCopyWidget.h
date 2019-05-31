@@ -21,11 +21,9 @@ public slots:
 	void directoryUpdated(const QString &path);
 	void fileUpdated(const QString& file);
 	//
-	void on_btn_Edit_clicked();
 	void on_btn_Import_clicked();
 	void on_btn_Export_clicked();
 	void on_btn_ClearOutPut_clicked();
-	void on_btn_Clear_clicked();
 	void on_btn_Check_clicked();
 	//
 	void tipMessage(const QString& msg);
@@ -40,8 +38,8 @@ private slots:
 	void doOutputFindNext(bool directionForward = true);
 	void doOutputErrorNext();
 	void setSearchFilter(const QString& str);
-	void setGroupedView(bool v);
 	void setAdvancedView(bool v);
+	void resetDisplay();
 private:
 	QFileSystemWatcher* m_fileWatcher;
 	QFileSystemWatcher* m_directoryWatcher;
@@ -52,7 +50,6 @@ private:
 private:
 	Ui::AutoCopyWidget ui;
 	QMenu* m_OutPutMenu;
-	QAction* m_test;
 	bool m_bWatching;
 	QString m_baseTitle;
 };

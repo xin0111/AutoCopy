@@ -21,13 +21,13 @@
      </property>
      <widget class="QGroupBox" name="groupBox">
       <property name="title">
-       <string/>
+       <string>拷贝规则</string>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,0,0,0">
+          <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,0">
            <property name="spacing">
             <number>10</number>
            </property>
@@ -67,32 +67,14 @@
              </property>
             </widget>
            </item>
-           <item>
-            <widget class="QPushButton" name="btn_Edit">
-             <property name="text">
-              <string>添加</string>
-             </property>
-             <property name="icon">
-              <iconset resource="AutoCopy.qrc">
-               <normaloff>:/images/Plus16.png</normaloff>:/images/Plus16.png</iconset>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="btn_Clear">
-             <property name="text">
-              <string>清空列表</string>
-             </property>
-             <property name="icon">
-              <iconset resource="AutoCopy.qrc">
-               <normaloff>:/images/Delete16.png</normaloff>:/images/Delete16.png</iconset>
-             </property>
-            </widget>
-           </item>
           </layout>
          </item>
          <item>
-          <widget class="AutoRuleView" name="RuleValues"/>
+          <widget class="AutoRuleView" name="RuleValues">
+           <property name="selectionMode">
+            <enum>QAbstractItemView::ExtendedSelection</enum>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -118,7 +100,7 @@
      </widget>
      <widget class="QGroupBox" name="groupBox_2">
       <property name="title">
-       <string/>
+       <string>输出信息</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>

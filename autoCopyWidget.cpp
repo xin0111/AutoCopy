@@ -11,7 +11,6 @@
 #include <QSettings>
 #include "Tools.h"
 #include "autocopyschedule.h"
-#include "addRuleEntry.h"
 #include "autocopy.h"
 
 
@@ -59,16 +58,22 @@ m_directoryWatcher(new QFileSystemWatcher(this)),
 
 	QObject::connect(ui.Search, SIGNAL(textChanged(QString)), this,
 		SLOT(setSearchFilter(QString)));
-	//QObject::connect(ui.groupedCheck, SIGNAL(toggled(bool)), this,
-	//	SLOT(setGroupedView(bool)));
-	//QObject::connect(ui.groupedCheck, SIGNAL(toggled(bool)), this,
-	//	SLOT(setAdvancedView(bool)));
+
 	ui.groupedCheck->setVisible(false);
 	setAdvancedView(true);
 	// start watching
 	m_bWatching = true;
 	connect(m_directoryWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(directoryUpdated(const QString &)));
 	connect(m_fileWatcher, SIGNAL(fileChanged(const QString &)), this, SLOT(fileUpdated(const QString &)));
+
+	connect(ui.RuleValues, &AutoRuleView::sig_addEditedTask, [=](const QString& key)
+	{
+		m_copySchedule->copyFileTask(key, AutoCopySchedule::COPYFILEINIT);
+	});
+	connect(ui.RuleValues, &AutoRuleView::sig_updateSchedule, [=]()
+	{
+		m_copySchedule->copyFileTask("", AutoCopySchedule::COPYFILEINIT);
+	});
 
 	m_copySchedule->start();
 }
@@ -81,53 +86,22 @@ AutoCopyWidget::~AutoCopyWidget()
 	settings.setValue("SplitterSizes", ui.splitter->saveState());
 }
 
-void AutoCopyWidget::on_btn_Edit_clicked()
-{
-	AddRuleEntry* w =
-		new AddRuleEntry();
-
-	if (QDialog::Accepted == w->exec()) {
-		AutoRuleModel* m = ui.RuleValues->cacheModel();
-		m->updatePropertyAdvance(); 
-		QHash<QString, QStringList>& rules = w->getCopyRule();
-
-		QHashIterator<QString, QStringList> i(rules);
-		QString strCopyFrom;
-		QStringList copyToList;
-	
-		while (i.hasNext()) {
-			i.next();
-			strCopyFrom = i.key();
-			copyToList = i.value();			
-			for each (const QString& var in copyToList)
-			{
-				m->insertProperty(AutoCopyProperty::FILEANDPATH, AutoCopyProperty::PATH, strCopyFrom, strCopyFrom, var,
-					false);				
-			}
-		}
-		if (!rules.isEmpty())
-		{
-			//m->chang
-			m_copySchedule->copyFileTask("", AutoCopySchedule::COPYFILEINIT);
-		}
-	}
-}
-
 void AutoCopyWidget::on_btn_Import_clicked()
 {
 	QString fileName = QFileDialog::getOpenFileName(this,
-		tr("Open File"), "", tr("Xml Files (*.xml )"));
+		tr("Open File"), "", tr("AutoCopy Files (*.xml | *.bat )"));
 	if (!fileName.isEmpty())
 	{
-		on_btn_Clear_clicked();
-		AutoCopyPropertyList& rules = m_copySchedule->importFileRules(fileName);
+		resetDisplay();
+		AutoCopyPropertyList& rules = fileName.endsWith("xml") ?
+			m_copySchedule->importFileRules(fileName) : m_copySchedule->importRulesBat(fileName);
 		AutoRuleModel* m = ui.RuleValues->cacheModel();
 		for each (AutoCopyProperty var in rules)
-		{			
-			m->insertProperty(var.KeyType, var.ValueType, var.Key.replace("\\", "/"), 
+		{
+			m->insertProperty(var.KeyType, var.ValueType, var.Key.replace("\\", "/"),
 				var.Key, var.Value.toString().replace("\\", "/"),
 				false);
-		}	
+		}
 
 		m_copySchedule->copyFileTask("", AutoCopySchedule::COPYFILEINIT);
 
@@ -138,12 +112,15 @@ void AutoCopyWidget::on_btn_Import_clicked()
 void AutoCopyWidget::on_btn_Export_clicked()
 {
 	QString filePath = QFileDialog::getSaveFileName(this, QString::fromLocal8Bit("±£´æÎÄ¼þ"),
-		"AutoCopy.xml", "Xml Files (*.xml )");
+		"AutoCopy", "AutoCopy Files (*.bat | *.xml)");
 	if (!filePath.isEmpty())
 	{
 		AutoRuleModel* m = ui.RuleValues->cacheModel();
 		AutoCopyPropertyList& propertyList = m->properties();
-		m_copySchedule->exportFileRules(filePath, propertyList);
+
+		filePath.endsWith("xml")?
+		m_copySchedule->exportFileRules(filePath, propertyList):
+		m_copySchedule->exportRulesBat(filePath,propertyList);
 
 		this->setWindowTitle(QFileInfo(filePath).baseName() + " - " + m_baseTitle);
 	}
@@ -152,14 +129,6 @@ void AutoCopyWidget::on_btn_Export_clicked()
 void AutoCopyWidget::on_btn_ClearOutPut_clicked()
 {
 	ui.Output->clear();
-}
-
-void AutoCopyWidget::on_btn_Clear_clicked()
-{
-	m_copySchedule->reset();
-	AutoRuleModel* m = ui.RuleValues->cacheModel();
-	m->clear();
-	this->setWindowTitle(m_baseTitle);
 }
 
 void AutoCopyWidget::on_btn_Check_clicked()
@@ -317,14 +286,15 @@ void AutoCopyWidget::setSearchFilter(const QString& str)
 	ui.RuleValues->setSearchFilter(str);
 }
 
-void AutoCopyWidget::setGroupedView(bool v)
-{
-	ui.RuleValues->cacheModel()->setViewType(v ? AutoRuleModel::GroupView
-		: AutoRuleModel::FlatView);
-	ui.RuleValues->setRootIsDecorated(v);
-}
-
 void AutoCopyWidget::setAdvancedView(bool v)
 {
 	ui.RuleValues->setShowAdvanced(v);
+}
+
+void AutoCopyWidget::resetDisplay()
+{
+	m_copySchedule->reset();
+	AutoRuleModel* m = ui.RuleValues->cacheModel();
+	m->clear();
+	this->setWindowTitle(m_baseTitle);
 }

@@ -5,7 +5,7 @@
 #include <QAtomicInt>
 #include <QString>
 #include <QVariant>
-#include <QMetaType>
+#include <QMetaType> 
 /// struct to represent cmake properties in Qt
 /// Value is of type String or Bool
 struct AutoCopyProperty
@@ -14,8 +14,8 @@ struct AutoCopyProperty
 	{
 		BOOL,
 		PATH,
-		FILEPATH,
-		FILEANDPATH,
+		FILE,
+		FILE_PATH,
 		STRING
 	};
 	QString Key;
