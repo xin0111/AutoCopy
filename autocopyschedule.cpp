@@ -68,29 +68,8 @@ void AutoCopySchedule::copyExist()
 	int nAuto = rules.size();
 	QString src,dest; 
 	for (int i = 0; i < nAuto; i++)
-	{//文件夹
-		const AutoCopyProperty& pro = rules.at(i);
-		src = pro.Key;
-		//添加所有存储
-		addWatcher(src);
-		//跳过已拷贝
-		if (pro.Advanced)
-			continue;
-		
-		QFileInfo srcInfo(src);
-		if (srcInfo.isDir())
-		{
-			updateWatcherDirectory(src);		
-		}
-		else 
-		{
-			fileRules.push_back(pro);
-		}		
-	}
-	int nFiles = fileRules.size();
-	for (int i = 0; i < nFiles; i++)
 	{//文件
-		const AutoCopyProperty& pro = fileRules.at(i);
+		const AutoCopyProperty& pro = rules.at(i);
 		src = pro.Key;
 		QString srcPath = QFileInfo(src).absolutePath();
 		if (addWatcher(srcPath))
@@ -100,9 +79,9 @@ void AutoCopySchedule::copyExist()
 		}
 		//跳过已拷贝
 		if (pro.Advanced)
-			continue;		
+			continue;
 
-		copyFile(src);		
+		copyFile(src);
 	}
 }
 

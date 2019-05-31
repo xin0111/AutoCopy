@@ -11,6 +11,7 @@
 #include <QSortFilterProxyModel>
 #include <QStyle>
 #include <QMenu>
+#include <QFileInfo>
 
 #include "editwidgets.h"
 
@@ -121,7 +122,7 @@ AutoRuleView::AutoRuleView(QWidget* p)
 	  this, SIGNAL(sig_addEditedTask(const QString& )));
 
   this->setItemDelegate(delegate);  
-
+  
   this->setUniformRowHeights(true);
 
   this->setEditTriggers(QAbstractItemView::DoubleClicked);
@@ -263,10 +264,14 @@ void AutoRuleModel::setPropertyData(const QModelIndex& idx1,
   if (!prop.Strings.isEmpty()) {
     this->setData(idx1, prop.Strings, AutoRuleModel::StringsRole);
   }
-  if (!QFile::exists(prop.Key))
-	  this->setData(idx1, QColor(255, 100, 100), Qt::BackgroundRole);
-  if (!QFile::exists(prop.Value.toString()))
-	  this->setData(idx2, QColor(255, 100, 100), Qt::BackgroundRole);
+
+  QFileInfo keyInfo(prop.Key);
+  this->setData(idx1,
+	  keyInfo.isFile() ? QColor(255, 255, 255) : QColor(255, 100, 100), Qt::BackgroundRole);
+  QFileInfo valInfo(prop.Value.toString());
+  this->setData(idx2,
+	  valInfo.isDir() ? QColor(255, 255, 255) : QColor(255, 100, 100), Qt::BackgroundRole);
+
   Q_UNUSED(isNew);
 }
 
@@ -280,7 +285,7 @@ void AutoRuleModel::updatePropertyAdvance()
 }
 
 void AutoRuleModel::getPropertyData(const QModelIndex& idx1,
-                                       AutoCopyProperty& prop) const
+	AutoCopyProperty& prop)  const
 {
   QModelIndex idx2 = idx1.sibling(idx1.row(), 1);
 
@@ -299,6 +304,13 @@ void AutoRuleModel::getPropertyData(const QModelIndex& idx1,
   } else {
     prop.Value = this->data(idx2, Qt::DisplayRole).toString();
   }
+ 
+  QFileInfo keyInfo(prop.Key);
+  const_cast<AutoRuleModel*>(this)->setData(idx1,
+	 keyInfo.isFile() ? QColor(255, 255, 255) : QColor(255, 100, 100) , Qt::BackgroundRole);
+  QFileInfo valInfo(prop.Value.toString());
+  const_cast<AutoRuleModel*>(this)->setData(idx2, 
+	  valInfo.isDir() ? QColor(255, 255, 255) : QColor(255, 100, 100), Qt::BackgroundRole);
 }
 
 QString AutoRuleModel::prefix(const QString& s)
@@ -339,7 +351,7 @@ void AutoRuleModel::breakProperties(
 
 AutoCopyPropertyList AutoRuleModel::properties() const
 {
-	AutoCopyPropertyList props;
+  AutoCopyPropertyList props;
 
   if (!this->rowCount()) {
     return props;
@@ -606,12 +618,9 @@ void AutoRuleModelDelegate::recordChange(QAbstractItemModel* model,
     // now add the new item
     mChanges.insert(prop);
 
-	//
 	if (QFile::exists(prop.Key)
 		&& QFile::exists(prop.Value.toString()))
 	{
-		cache_model->setData(idx, QColor(255, 255, 255), Qt::BackgroundRole);
-		cache_model->setData(idx.sibling(idx.row(), 1), QColor(255, 255, 255), Qt::BackgroundRole);
 		sig_addEditedTask(prop.Key);
 	}
   }

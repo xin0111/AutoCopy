@@ -102,7 +102,7 @@ public:
   QModelIndex buddy(const QModelIndex& idx) const;
 
   // get the data in the model for this property
-  void getPropertyData(const QModelIndex& idx1, AutoCopyProperty& prop) const;
+  void getPropertyData(const QModelIndex& idx1, AutoCopyProperty& prop)const;
 
   void updatePropertyAdvance();
 protected:
@@ -145,7 +145,7 @@ public:
   QSet<AutoCopyProperty> changes() const;
   void clearChanges();
 
-protected slots:
+  protected slots:
   void setFileDialogFlag(bool);
 signals:
   void sig_addEditedTask(const QString&);
@@ -154,7 +154,6 @@ protected:
   // record a change to an item in the model.
   // this simply saves the item in the set of changes
   void recordChange(QAbstractItemModel* model, const QModelIndex& index);
-
   // properties changed by user via this delegate
   QSet<AutoCopyProperty> mChanges;
 };
