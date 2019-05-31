@@ -68,16 +68,19 @@ void AutoCopySchedule::copyExist()
 	int nAuto = rules.size();
 	QString src,dest; 
 	for (int i = 0; i < nAuto; i++)
-	{//ÎÄ¼þ
+	{//æ–‡ä»¶
 		const AutoCopyProperty& pro = rules.at(i);
 		src = pro.Key;
+		QString destPath = checkCopyFile(src);
+		if (!QFile::exists(destPath)) continue;
+		
 		QString srcPath = QFileInfo(src).absolutePath();
 		if (addWatcher(srcPath))
-		{//³É¹¦Ìí¼Ó¼àÌýÄ¿Â¼
+		{//æˆåŠŸæ·»åŠ ç›‘å¬ç›®å½•
 			m_fileOnlyPaths.insert(srcPath);
 			m_filesInOnlyPath.push_back(src);
 		}
-		//Ìø¹ýÒÑ¿½±´
+		//è·³è¿‡å·²æ‹·è´
 		if (pro.Advanced)
 			continue;
 
@@ -154,7 +157,7 @@ void AutoCopySchedule::exportFileRules(const QString& filePath, const AutoCopyPr
 	}
 	doc.appendChild(root);
 	CTools::saveXml(doc, filePath);
-	sig_tipMessage(QString::fromLocal8Bit("µ¼³öÍê³É."));
+	sig_tipMessage(QString::fromLocal8Bit("å¯¼å‡ºå®Œæˆ."));
 }
 
 void AutoCopySchedule::exportRulesBat(const QString& filePath, const AutoCopyPropertyList& rules)
@@ -171,12 +174,12 @@ void AutoCopySchedule::exportRulesBat(const QString& filePath, const AutoCopyPro
 	}	
 	ofs.close();
 
-	sig_tipMessage(QString::fromLocal8Bit("µ¼³öÍê³É."));
+	sig_tipMessage(QString::fromLocal8Bit("å¯¼å‡ºå®Œæˆ."));
 }
 
 void AutoCopySchedule::updateWatcherDirectory(const QString& root)
 {
-	//Èç¹ûÎÄ¼þÒÑÉ¾³ý£¬ÐèÒªÖØÐÂÌí¼Ó
+	//å¦‚æžœæ–‡ä»¶å·²åˆ é™¤ï¼Œéœ€è¦é‡æ–°æ·»åŠ 
 	const QDir dir(root);
 	//QDir::NoDotAndDotDot | QDir::AllDirs | QDir::Files | QDir::Modified
 	//file only
@@ -203,7 +206,7 @@ void AutoCopySchedule::updateWatcherDirectory(const QString& root)
 			continue;
 		}	
 
-		{//Ìí¼Ó¼àÊÓÎÄ¼þ/Ìí¼Ó¼àÊÓÂ·¾¶ 		
+		{//æ·»åŠ ç›‘è§†æ–‡ä»¶/æ·»åŠ ç›‘è§†è·¯å¾„ 		
 
 			qDebug() << "watcher : " << filePath;
 			if (info.isDir())
