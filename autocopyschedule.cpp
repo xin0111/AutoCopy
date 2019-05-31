@@ -30,7 +30,7 @@ protected:
 			m_copyThread->copyFile(m_from);
 			break;
 		case AutoCopySchedule::UPDATEDIRECTORYTASK:
-			m_copyThread->updateWatcherDirectory(m_from);
+			m_copyThread->updateDirFilesWatcher(m_from);
 			break;
 		default:
 			break;
@@ -42,10 +42,9 @@ private:
 	AutoCopySchedule::emTaskType m_taskType;
 };
 
-AutoCopySchedule::AutoCopySchedule(QFileSystemWatcher* fileWatcher, QFileSystemWatcher* directoryWatcher,
+AutoCopySchedule::AutoCopySchedule(QFileSystemWatcher* fileWatcher,
 	AutoRuleModel* model) :
-m_fileWatcher(fileWatcher),
-m_directoryWatcher(directoryWatcher),
+m_fileSysWatcher(fileWatcher),
 m_model(model)
 {
 
@@ -67,21 +66,39 @@ void AutoCopySchedule::copyExist()
 	AutoCopyPropertyList fileRules;
 	int nAuto = rules.size();
 	QString src,dest; 
+	//Ìí¼ÓÑ¡ÔñÎÄ¼þ
 	for (int i = 0; i < nAuto; i++)
-	{//æ–‡ä»¶
+	{
+		const AutoCopyProperty& pro = rules.at(i);
+		src = pro.Key;
+		QString destPath = checkCopyFile(src);
+		if (!QFile::exists(destPath)) continue;
+		QFileInfo srcInfo(src);
+		if (srcInfo.isFile())
+		{
+			QString srcPath = srcInfo.absolutePath();
+			//file only 
+			m_fileOnlyPaths.push_back(srcPath);
+			m_filesInOnlyPath.push_back(src);
+		}
+		else if (srcInfo.isDir())
+		{
+			// remove contains
+			if (m_fileOnlyPaths.contains(src))
+				m_fileOnlyPaths.removeOne(src);
+		}
+	}
+	//Ìí¼Ó¼àÊÓ
+	for (int i = 0; i < nAuto; i++)
+	{
 		const AutoCopyProperty& pro = rules.at(i);
 		src = pro.Key;
 		QString destPath = checkCopyFile(src);
 		if (!QFile::exists(destPath)) continue;
 		
-		QString srcPath = QFileInfo(src).absolutePath();
-		if (addWatcher(srcPath))
-		{
-			addWatcher(src);
-			m_fileOnlyPaths.insert(srcPath);
-			m_filesInOnlyPath.push_back(src);
-		}
-		//è·³è¿‡å·²æ‹·è´
+		addWatcher(src);
+	
+		//Ìø¹ýÒÑ¿½±´
 		if (pro.Advanced)
 			continue;
 
@@ -89,15 +106,27 @@ void AutoCopySchedule::copyExist()
 	}
 }
 
-bool AutoCopySchedule::addWatcher(const QString& source)
+void AutoCopySchedule::addWatcher(const QString& source)
 {	
-	if (QFileInfo(source).isDir())
+	QFileInfo srcInfo(source);
+	if (srcInfo.isDir())
 	{
-		return m_directoryWatcher->addPath(source);	
+		QStringList dirInWatcher = m_fileSysWatcher->directories();
+		//×ÓÎÄ¼þ¼Ð
+		updateDirFilesWatcher(source);
+		//µ±Ç°ÎÄ¼þ¼Ð		
+		m_fileSysWatcher->addPath(source);
+		
 	}
-	return m_fileWatcher->addPath(source);
+	else if (srcInfo.isFile())
+	{
+		QString srcPath = QFileInfo(source).absolutePath();		
+		//¸¸ÎÄ¼þ¼Ð		
+		m_fileSysWatcher->addPath(srcPath);
+		//µ±Ç°ÎÄ¼þ		
+		m_fileSysWatcher->addPath(source);
+	}
 }
-
 
 AutoCopyPropertyList AutoCopySchedule::importFileRules(const QString& filePath)
 {
@@ -111,7 +140,7 @@ AutoCopyPropertyList AutoCopySchedule::importFileRules(const QString& filePath)
 	{		
 		AutoCopyProperty prop;
 		prop.Key = ruleNodes.at(rule).toElement().attribute("src");
-		prop.KeyType = AutoCopyProperty::FILE;
+		prop.KeyType = AutoCopyProperty::FILE_PATH;
 		prop.Value = ruleNodes.at(rule).toElement().attribute("dest");
 		prop.ValueType = AutoCopyProperty::PATH;
 		rules << prop;
@@ -122,8 +151,8 @@ AutoCopyPropertyList AutoCopySchedule::importFileRules(const QString& filePath)
 AutoCopyPropertyList AutoCopySchedule::importRulesBat(const QString& filePath)
 {
 	AutoCopyPropertyList rules;
-
-	std::fstream fin(filePath.toStdString());
+	
+	std::fstream fin(filePath.toLocal8Bit().toStdString());
 	std::string strLine;
 	while (getline(fin,strLine))
 	{
@@ -134,7 +163,7 @@ AutoCopyPropertyList AutoCopySchedule::importRulesBat(const QString& filePath)
 			if (pathInfos.size() < 3 ) continue;
 			AutoCopyProperty prop;
 			prop.Key = pathInfos[1];
-			prop.KeyType = AutoCopyProperty::FILE;
+			prop.KeyType = AutoCopyProperty::FILE_PATH;
 			prop.Value = pathInfos[2];
 			prop.ValueType = AutoCopyProperty::PATH;
 			rules << prop;
@@ -158,7 +187,7 @@ void AutoCopySchedule::exportFileRules(const QString& filePath, const AutoCopyPr
 	}
 	doc.appendChild(root);
 	CTools::saveXml(doc, filePath);
-	sig_tipMessage(QString::fromLocal8Bit("å¯¼å‡ºå®Œæˆ."));
+	sig_tipMessage(QString::fromLocal8Bit("µ¼³öÍê³É."));
 }
 
 void AutoCopySchedule::exportRulesBat(const QString& filePath, const AutoCopyPropertyList& rules)
@@ -175,50 +204,39 @@ void AutoCopySchedule::exportRulesBat(const QString& filePath, const AutoCopyPro
 	}	
 	ofs.close();
 
-	sig_tipMessage(QString::fromLocal8Bit("å¯¼å‡ºå®Œæˆ."));
+	sig_tipMessage(QString::fromLocal8Bit("µ¼³öÍê³É."));
 }
 
-void AutoCopySchedule::updateWatcherDirectory(const QString& root)
+void AutoCopySchedule::updateDirFilesWatcher(const QString& root)
 {
-	//å¦‚æžœæ–‡ä»¶å·²åˆ é™¤ï¼Œéœ€è¦é‡æ–°æ·»åŠ 
-	const QDir dir(root);
-	//QDir::NoDotAndDotDot | QDir::AllDirs | QDir::Files | QDir::Modified
+	//Èç¹ûÎÄ¼þÒÑÉ¾³ý£¬ÐèÒªÖØÐÂÌí¼Ó
+	const QDir dir(root);	
 	//file only
 	QFileInfoList firstEntryList = dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Files | QDir::Modified);
 	QString filePath;
-	QStringList fileInWatcher = m_fileWatcher->files();
-	QStringList dirInWatcher = m_directoryWatcher->directories();
+	QStringList fileInWatcher = m_fileSysWatcher->files();
 	for each (const QFileInfo& info in firstEntryList)
 	{
 		filePath = info.filePath();
-	
+
 		if (m_fileOnlyPaths.contains(root))
-		{//select files only
+		{
 			if (!m_filesInOnlyPath.contains(filePath))
 			{
-				qDebug() << "check only " << filePath;
+				qDebug() << "not selected " << filePath;
 				continue;
 			}
 		}
 
-		if (fileInWatcher.contains(filePath) || dirInWatcher.contains(filePath))
+		if (fileInWatcher.contains(filePath) )
 		{
 			qDebug() << "watcher contains " << filePath;
 			continue;
 		}	
 
-		{//æ·»åŠ ç›‘è§†æ–‡ä»¶/æ·»åŠ ç›‘è§†è·¯å¾„ 		
+		copyFile(filePath);
 
-			qDebug() << "watcher : " << filePath;
-			if (info.isDir())
-			{
-				updateWatcherDirectory(filePath);
-			}
-			if (info.isFile())
-				copyFile(filePath);			
-
-			addWatcher(filePath);
-		}
+		addWatcher(filePath);
 	}
 }
 
@@ -257,7 +275,7 @@ QString AutoCopySchedule::checkCopyFile(const QString& from)
 			QFileInfo fromInfo(from);
 			QString fromPath = fromInfo.isDir() ? from : fromInfo.absolutePath();
 			
-			return var.Value.toString().append(fromPath.remove(keyPath));
+			return var.Value.toString();
 		}
 	}
 	return QString();
@@ -265,12 +283,10 @@ QString AutoCopySchedule::checkCopyFile(const QString& from)
 
 void AutoCopySchedule::reset()
 {
-	m_fileWatcher->removePaths(m_fileWatcher->files());
-	QStringList dirs =  m_directoryWatcher->removePaths(m_directoryWatcher->directories());
-	if (!dirs.isEmpty())
-	{
-		m_directoryWatcher->removePaths(dirs);
-	}
+	QStringList paths;
+	paths<< m_fileSysWatcher->files();
+	paths <<  m_fileSysWatcher->directories();		
+	m_fileSysWatcher->removePaths(paths);
 	m_fileOnlyPaths.clear();
 	m_filesInOnlyPath.clear();
 	m_tasksQueue.clear();
@@ -279,8 +295,8 @@ void AutoCopySchedule::reset()
 QStringList AutoCopySchedule::currentWatchPath()
 {
 	QStringList paths;
-	paths << m_fileWatcher->files();
-	paths << m_directoryWatcher->directories();
+	paths << m_fileSysWatcher->files();
+	paths << m_fileSysWatcher->directories();
 	return paths;
 }
 

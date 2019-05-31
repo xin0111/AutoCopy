@@ -46,7 +46,7 @@ public:
   void setPathEnable(bool bEnable){ m_pathEnable = bEnable; }
 private:
   QFileDialog* m_dlg;
-  QString m_path;
+  QString m_selectedPath;
   bool  m_pathEnable;//ÊÇ·ñÄÜÂ·¾¶
 };
 

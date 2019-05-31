@@ -41,8 +41,7 @@ private slots:
 	void setAdvancedView(bool v);
 	void resetDisplay();
 private:
-	QFileSystemWatcher* m_fileWatcher;
-	QFileSystemWatcher* m_directoryWatcher;
+	QFileSystemWatcher* m_fileSysWatcher;
 	QTextCharFormat ErrorFormat;
 	QTextCharFormat MessageFormat;
 	QStringList FindHistory;

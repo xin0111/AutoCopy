@@ -69,9 +69,8 @@ void RuleFilePathEditor::chooseFile()
 	  if (pTreeView)
 	  {
 		  connect(pTreeView, &QTreeView::doubleClicked, [=]()
-		  {
-/*			  m_path = m_dlg->selectedFiles().at(0);
-			  m_dlg->close();		*/	 
+		  {			  
+			  m_selectedPath = (m_dlg->selectedFiles().at(0));			  
 		  });
 	  }
 	  QLabel* fileNameLabel = m_dlg->findChild<QLabel*>("fileNameLabel");
@@ -84,22 +83,22 @@ void RuleFilePathEditor::chooseFile()
 	  disconnect(pButton, SIGNAL(accepted()), m_dlg, SLOT(accept()));//使链接失效
 	  connect(pButton, &QDialogButtonBox::accepted,
 		  [=](){
-		  m_path = m_dlg->selectedFiles().at(0);
+		  m_selectedPath = m_dlg->selectedFiles().at(0);
 		  m_dlg->close();
 	  });//改成自己的槽
 	  m_dlg->exec();
   }
   else
   {
-	  m_path =
+	  m_selectedPath =
 		  m_dlg->getOpenFileName(this, title, info.absolutePath(), QString(),
 		  nullptr, QFileDialog::DontResolveSymlinks);
   }
 
   emit this->fileDialogExists(false);
 
-  if (!m_path.isEmpty()) {
-	  this->setText(QDir::fromNativeSeparators(m_path));
+  if (!m_selectedPath.isEmpty()) {
+	  this->setText(QDir::fromNativeSeparators(m_selectedPath));
   }
   delete m_dlg;
 }

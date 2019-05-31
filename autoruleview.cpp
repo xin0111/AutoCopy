@@ -135,7 +135,7 @@ AutoRuleView::AutoRuleView(QWidget* p)
   this->setContextMenuPolicy(Qt::CustomContextMenu);
   m_pMenu = new QMenu(this);  
   m_pMenu->addAction(QString::fromLocal8Bit("Ìí¼Ó"), this, [=]{
-	  CacheModel->insertProperty(AutoCopyProperty::FILE, AutoCopyProperty::PATH, "", "",
+	  CacheModel->insertProperty(AutoCopyProperty::FILE_PATH, AutoCopyProperty::PATH, "", "",
 		  "", false);
   });
   connect(this, &QTreeView::customContextMenuRequested, [=](const QPoint&p){
@@ -267,7 +267,8 @@ void AutoRuleModel::setPropertyData(const QModelIndex& idx1,
 
   QFileInfo keyInfo(prop.Key);
   this->setData(idx1,
-	  keyInfo.isFile() ? QColor(255, 255, 255) : QColor(255, 100, 100), Qt::BackgroundRole);
+	  (keyInfo.isFile() || keyInfo.isDir()) ? QColor(255, 255, 255) :
+	  QColor(255, 100, 100), Qt::BackgroundRole);
   QFileInfo valInfo(prop.Value.toString());
   this->setData(idx2,
 	  valInfo.isDir() ? QColor(255, 255, 255) : QColor(255, 100, 100), Qt::BackgroundRole);
@@ -307,7 +308,8 @@ void AutoRuleModel::getPropertyData(const QModelIndex& idx1,
  
   QFileInfo keyInfo(prop.Key);
   const_cast<AutoRuleModel*>(this)->setData(idx1,
-	 keyInfo.isFile() ? QColor(255, 255, 255) : QColor(255, 100, 100) , Qt::BackgroundRole);
+	  (keyInfo.isFile()|| keyInfo.isDir()) ? QColor(255, 255, 255) :
+	  QColor(255, 100, 100), Qt::BackgroundRole);
   QFileInfo valInfo(prop.Value.toString());
   const_cast<AutoRuleModel*>(this)->setData(idx2, 
 	  valInfo.isDir() ? QColor(255, 255, 255) : QColor(255, 100, 100), Qt::BackgroundRole);

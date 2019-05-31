@@ -17,11 +17,10 @@ class AutoCopySchedule : public QThread
 	Q_OBJECT
 public:
 	enum emTaskType { COPYFILEINIT, COPYFILETASK, UPDATEDIRECTORYTASK };
-	AutoCopySchedule(QFileSystemWatcher* fileWatcher, 
-		QFileSystemWatcher* directoryWatcher, AutoRuleModel* model);
+	AutoCopySchedule(QFileSystemWatcher* fileWatcher, AutoRuleModel* model);
 public:
 	void copyExist();
-	bool addWatcher(const QString& source);
+	void addWatcher(const QString& source);
 	//µº»Îxml
 	AutoCopyPropertyList importFileRules(const QString& filePath);
 	AutoCopyPropertyList importRulesBat(const QString& filePath);
@@ -31,7 +30,7 @@ public:
 	//
 	void copyFileTask(const QString& filePath, emTaskType eType = COPYFILETASK);
 	void copyFile(const QString& from);
-	void updateWatcherDirectory(const QString& root);
+	void updateDirFilesWatcher(const QString& root);
 	QString checkCopyFile(const QString& from);
 	//÷ÿ÷√
 	void reset();
@@ -43,12 +42,11 @@ signals:
 protected:
 	void run();
 private:
-	QFileSystemWatcher* m_fileWatcher;
-	QFileSystemWatcher* m_directoryWatcher;
+	QFileSystemWatcher* m_fileSysWatcher;
 	AutoRuleModel* m_model;
 	BlockingQueue<QRunnable*> m_tasksQueue;
-	QList<QString>  m_filesInOnlyPath;
-	QSet<QString>  m_fileOnlyPaths;
+	QStringList m_fileOnlyPaths;
+	QStringList m_filesInOnlyPath;
 };
 
 #endif // AUTOCOPYSCHEDULE_H

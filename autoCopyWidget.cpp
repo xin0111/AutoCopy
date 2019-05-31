@@ -16,8 +16,7 @@
 
 AutoCopyWidget::AutoCopyWidget(QWidget *parent)
 : QWidget(parent),
-m_fileWatcher(new QFileSystemWatcher(this)),
-m_directoryWatcher(new QFileSystemWatcher(this)),
+m_fileSysWatcher(new QFileSystemWatcher(this)),
 	m_bWatching(false)
 {
 	ui.setupUi(this);
@@ -51,7 +50,7 @@ m_directoryWatcher(new QFileSystemWatcher(this)),
 	ui.Output->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(ui.Output, SIGNAL(customContextMenuRequested(const QPoint&)),
 		this, SLOT(doOutputContextMenu(const QPoint&)));
-	m_copySchedule = new AutoCopySchedule(m_fileWatcher, m_directoryWatcher, ui.RuleValues->cacheModel());
+	m_copySchedule = new AutoCopySchedule(m_fileSysWatcher,ui.RuleValues->cacheModel());
 	connect(m_copySchedule, SIGNAL(sig_tipMessage(const QString&)), this, SLOT(tipMessage(const QString&)));
 	connect(m_copySchedule, SIGNAL(sig_copyMsg(const QString&)), this, SLOT(displayCopyMsg(const QString&)));
 	connect(m_copySchedule, SIGNAL(sig_errorMsg(const QString&)), this, SLOT(displayErrorMsg(const QString&)));	
@@ -63,8 +62,8 @@ m_directoryWatcher(new QFileSystemWatcher(this)),
 	setAdvancedView(true);
 	// start watching
 	m_bWatching = true;
-	connect(m_directoryWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(directoryUpdated(const QString &)));
-	connect(m_fileWatcher, SIGNAL(fileChanged(const QString &)), this, SLOT(fileUpdated(const QString &)));
+	connect(m_fileSysWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(directoryUpdated(const QString &)));
+	connect(m_fileSysWatcher, SIGNAL(fileChanged(const QString &)), this, SLOT(fileUpdated(const QString &)));
 
 	connect(ui.RuleValues, &AutoRuleView::sig_addEditedTask, [=](const QString& key)
 	{
