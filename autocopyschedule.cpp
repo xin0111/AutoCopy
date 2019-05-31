@@ -76,7 +76,8 @@ void AutoCopySchedule::copyExist()
 		
 		QString srcPath = QFileInfo(src).absolutePath();
 		if (addWatcher(srcPath))
-		{//成功添加监听目录
+		{
+			addWatcher(src);
 			m_fileOnlyPaths.insert(srcPath);
 			m_filesInOnlyPath.push_back(src);
 		}
