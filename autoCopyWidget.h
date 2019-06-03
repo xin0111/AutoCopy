@@ -4,6 +4,9 @@
 #include <QWidget>
 #include <QObject>
 #include <QStringList>
+#include <QPointer>
+#include <QSystemTrayIcon>
+
 #include "ui_autoCopyWidget.h"
 
 
@@ -16,15 +19,15 @@ class AutoCopyWidget : public QWidget
 public:
 	AutoCopyWidget(QWidget *parent = 0);
 	~AutoCopyWidget();
+	//мпелотй╬
+	void enableTrayIcon();
 public slots:
-	//
-	void directoryUpdated(const QString &path);
-	void fileUpdated(const QString& file);
 	//
 	void on_btn_Import_clicked();
 	void on_btn_Export_clicked();
 	void on_btn_ClearOutPut_clicked();
 	void on_btn_Check_clicked();
+	void on_btn_Start_clicked();
 	//
 	void tipMessage(const QString& msg);
 	void displayCopyMsg(const QString& msg);
@@ -40,8 +43,9 @@ private slots:
 	void setSearchFilter(const QString& str);
 	void setAdvancedView(bool v);
 	void resetDisplay();
+protected:
+	void changeEvent(QEvent *) override;
 private:
-	QFileSystemWatcher* m_fileSysWatcher;
 	QTextCharFormat ErrorFormat;
 	QTextCharFormat MessageFormat;
 	QStringList FindHistory;
@@ -51,6 +55,7 @@ private:
 	QMenu* m_OutPutMenu;
 	bool m_bWatching;
 	QString m_baseTitle;
+	QPointer<QSystemTrayIcon> m_trayIcon;
 };
 
 #endif // AUTOCOPY_H

@@ -16,7 +16,6 @@
 
 AutoCopyWidget::AutoCopyWidget(QWidget *parent)
 : QWidget(parent),
-m_fileSysWatcher(new QFileSystemWatcher(this)),
 	m_bWatching(false)
 {
 	ui.setupUi(this);
@@ -50,7 +49,12 @@ m_fileSysWatcher(new QFileSystemWatcher(this)),
 	ui.Output->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(ui.Output, SIGNAL(customContextMenuRequested(const QPoint&)),
 		this, SLOT(doOutputContextMenu(const QPoint&)));
-	m_copySchedule = new AutoCopySchedule(m_fileSysWatcher,ui.RuleValues->cacheModel());
+
+	//托盘
+	enableTrayIcon();
+
+	// copy 任务
+	m_copySchedule = new AutoCopySchedule(ui.RuleValues->cacheModel());
 	connect(m_copySchedule, SIGNAL(sig_tipMessage(const QString&)), this, SLOT(tipMessage(const QString&)));
 	connect(m_copySchedule, SIGNAL(sig_copyMsg(const QString&)), this, SLOT(displayCopyMsg(const QString&)));
 	connect(m_copySchedule, SIGNAL(sig_errorMsg(const QString&)), this, SLOT(displayErrorMsg(const QString&)));	
@@ -60,21 +64,21 @@ m_fileSysWatcher(new QFileSystemWatcher(this)),
 
 	ui.groupedCheck->setVisible(false);
 	setAdvancedView(true);
-	// start watching
-	m_bWatching = true;
-	connect(m_fileSysWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(directoryUpdated(const QString &)));
-	connect(m_fileSysWatcher, SIGNAL(fileChanged(const QString &)), this, SLOT(fileUpdated(const QString &)));
 
 	connect(ui.RuleValues, &AutoRuleView::sig_addEditedTask, [=](const QString& key)
 	{
-		m_copySchedule->copyFileTask(key, AutoCopySchedule::COPYFILEINIT);
+		Q_UNUSED(key);
+		m_copySchedule->resetSchedule();
+		ui.btn_Start->setText(QString::fromLocal8Bit("开始"));
+		ui.btn_Check->setEnabled(false);
 	});
 	connect(ui.RuleValues, &AutoRuleView::sig_updateSchedule, [=]()
 	{
-		m_copySchedule->copyFileTask("", AutoCopySchedule::COPYFILEINIT);
+		m_copySchedule->resetSchedule();
+		ui.btn_Start->setText(QString::fromLocal8Bit("开始"));
+		ui.btn_Check->setEnabled(false);
 	});
-
-	m_copySchedule->start();
+	ui.btn_Check->setEnabled(false);
 }
 
 AutoCopyWidget::~AutoCopyWidget()
@@ -102,9 +106,8 @@ void AutoCopyWidget::on_btn_Import_clicked()
 				false);
 		}
 
-		m_copySchedule->copyFileTask("", AutoCopySchedule::COPYFILEINIT);
-
 		this->setWindowTitle(QFileInfo(fileName).baseName() + " - " + m_baseTitle);
+		
 	}
 }
 
@@ -139,16 +142,11 @@ void AutoCopyWidget::on_btn_Check_clicked()
 	}
 }
 
-void AutoCopyWidget::directoryUpdated(const QString &path)
+void AutoCopyWidget::on_btn_Start_clicked()
 {
-	qDebug() << "dir" << path;
-	m_copySchedule->copyFileTask(path, AutoCopySchedule::UPDATEDIRECTORYTASK);
-}
-
-void AutoCopyWidget::fileUpdated(const QString& file)
-{
-	qDebug() << "file" << file;
-	m_copySchedule->copyFileTask(file);
+	m_copySchedule->createWatcher();
+	ui.btn_Start->setText(QString::fromLocal8Bit("Working..."));
+	ui.btn_Check->setEnabled(true);
 }
 
 void AutoCopyWidget::displayCopyMsg(const QString& msg)
@@ -292,8 +290,41 @@ void AutoCopyWidget::setAdvancedView(bool v)
 
 void AutoCopyWidget::resetDisplay()
 {
-	m_copySchedule->reset();
+	m_copySchedule->resetSchedule();
+	ui.btn_Start->setText(QString::fromLocal8Bit("开始"));
+	ui.btn_Check->setEnabled(false);
 	AutoRuleModel* m = ui.RuleValues->cacheModel();
 	m->clear();
 	this->setWindowTitle(m_baseTitle);
+}
+
+void AutoCopyWidget::enableTrayIcon()
+{
+	QAction *quitAction = new QAction(tr("&Quit"), this);
+	connect(quitAction, &QAction::triggered, qApp,
+		&QCoreApplication::quit);
+	QMenu *trayIconMenu = new QMenu(this);
+	trayIconMenu->addAction(quitAction);
+
+	m_trayIcon = new QSystemTrayIcon(this);
+	m_trayIcon->setToolTip(QString::fromLocal8Bit("AutoCopy"));
+	m_trayIcon->setContextMenu(trayIconMenu);
+	QIcon trayicon = QIcon::fromTheme("AutoCopy-tray", QIcon(":images/autocopy.png"));
+	m_trayIcon->setIcon(trayicon);
+	auto trayIconActivated = [this](QSystemTrayIcon::ActivationReason r){
+		if (r == QSystemTrayIcon::DoubleClick) {
+			this->activateWindow();
+			this->showNormal();
+		}
+	};
+	connect(m_trayIcon, &QSystemTrayIcon::activated, this, trayIconActivated);
+	m_trayIcon->show();
+}
+
+void AutoCopyWidget::changeEvent(QEvent *e)
+{
+	if (e->type() == QEvent::WindowStateChange && this->isMinimized())
+	{
+		this->hide();
+	}
 }

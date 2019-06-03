@@ -17,8 +17,9 @@ class AutoCopySchedule : public QThread
 	Q_OBJECT
 public:
 	enum emTaskType { COPYFILEINIT, COPYFILETASK, UPDATEDIRECTORYTASK };
-	AutoCopySchedule(QFileSystemWatcher* fileWatcher, AutoRuleModel* model);
+	AutoCopySchedule( AutoRuleModel* model);
 public:
+	void createWatcher();
 	void copyExist();
 	void addWatcher(const QString& source);
 	//µº»Îxml
@@ -28,19 +29,23 @@ public:
 	void exportFileRules(const QString& filePath, const AutoCopyPropertyList& rules);
 	void exportRulesBat(const QString& filePath, const AutoCopyPropertyList& rules);
 	//
-	void copyFileTask(const QString& filePath, emTaskType eType = COPYFILETASK);
+	void copyFileTask(const QString& filePath, emTaskType eType);
 	void copyFile(const QString& from);
 	void updateDirFilesWatcher(const QString& root);
 	QString checkCopyFile(const QString& from);
 	//÷ÿ÷√
-	void reset();
+	void resetSchedule();
 	QStringList currentWatchPath();
+
 signals:
 	void sig_copyMsg(const QString& msg);
 	void sig_errorMsg(const QString& error);
 	void sig_tipMessage(const QString& error);
 protected:
 	void run();
+private slots:
+	void fileUpdated(const QString& file);
+	void directoryUpdated(const QString &path);
 private:
 	QFileSystemWatcher* m_fileSysWatcher;
 	AutoRuleModel* m_model;

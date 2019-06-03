@@ -42,30 +42,34 @@ private:
 	AutoCopySchedule::emTaskType m_taskType;
 };
 
-AutoCopySchedule::AutoCopySchedule(QFileSystemWatcher* fileWatcher,
-	AutoRuleModel* model) :
-m_fileSysWatcher(fileWatcher),
-m_model(model)
+AutoCopySchedule::AutoCopySchedule(AutoRuleModel* model) :
+m_model(model),
+m_fileSysWatcher(nullptr)
 {
-
+	this->start();
 }
 
-void AutoCopySchedule::copyFileTask(const QString& filePath, emTaskType eType/*=COPYFILETASK*/)
-{
-	if (QFile::exists(filePath) || eType == COPYFILEINIT)
+
+void AutoCopySchedule::createWatcher()
+{	
+	if (m_fileSysWatcher)
 	{
-		CopyTask *copyTask = new CopyTask(this, filePath, eType);
-		m_tasksQueue.put(copyTask);	
+		sig_copyMsg("Auto Copy Working...");
+		return;
 	}
+	m_fileSysWatcher = new QFileSystemWatcher(this);
+	connect(m_fileSysWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(directoryUpdated(const QString &)));
+	connect(m_fileSysWatcher, SIGNAL(fileChanged(const QString &)), this, SLOT(fileUpdated(const QString &)));
+
+	copyFileTask("", COPYFILEINIT);
 }
 
 void AutoCopySchedule::copyExist()
 {
-	this->reset();
 	AutoCopyPropertyList& rules = m_model->properties();
 	AutoCopyPropertyList fileRules;
 	int nAuto = rules.size();
-	QString src,dest; 
+	QString src; 
 	//添加选择文件
 	for (int i = 0; i < nAuto; i++)
 	{
@@ -73,20 +77,20 @@ void AutoCopySchedule::copyExist()
 		src = pro.Key;
 		QString destPath = checkCopyFile(src);
 		if (!QFile::exists(destPath)) continue;
-		QFileInfo srcInfo(src);
-		if (srcInfo.isFile())
-		{
-			QString srcPath = srcInfo.absolutePath();
-			//file only 
-			m_fileOnlyPaths.push_back(srcPath);
-			m_filesInOnlyPath.push_back(src);
-		}
-		else if (srcInfo.isDir())
+		QFileInfo srcInfo(src);		
+		if (srcInfo.isDir())
 		{
 			// remove contains
 			if (m_fileOnlyPaths.contains(src))
 				m_fileOnlyPaths.removeOne(src);
 		}
+		else 
+		{
+			QString srcPath = srcInfo.absolutePath();
+			//file only 
+			m_fileOnlyPaths.push_back(srcPath);
+			m_filesInOnlyPath.push_back(src);
+		}		
 	}
 	//添加监视
 	for (int i = 0; i < nAuto; i++)
@@ -118,7 +122,7 @@ void AutoCopySchedule::addWatcher(const QString& source)
 		m_fileSysWatcher->addPath(source);
 		
 	}
-	else if (srcInfo.isFile())
+	else 
 	{
 		QString srcPath = QFileInfo(source).absolutePath();		
 		//父文件夹		
@@ -240,6 +244,15 @@ void AutoCopySchedule::updateDirFilesWatcher(const QString& root)
 	}
 }
 
+void AutoCopySchedule::copyFileTask(const QString& filePath, emTaskType eType/*=COPYFILETASK*/)
+{
+	if (QFile::exists(filePath) || eType == COPYFILEINIT)
+	{
+		CopyTask *copyTask = new CopyTask(this, filePath, eType);
+		m_tasksQueue.put(copyTask);
+	}
+}
+
 void AutoCopySchedule::copyFile(const QString& from)
 {
 	const QString& dest = checkCopyFile(from);
@@ -281,12 +294,16 @@ QString AutoCopySchedule::checkCopyFile(const QString& from)
 	return QString();
 }
 
-void AutoCopySchedule::reset()
+void AutoCopySchedule::resetSchedule()
 {
 	QStringList paths;
-	paths<< m_fileSysWatcher->files();
-	paths <<  m_fileSysWatcher->directories();		
-	m_fileSysWatcher->removePaths(paths);
+	if (m_fileSysWatcher)
+	{
+		disconnect(m_fileSysWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(directoryUpdated(const QString &)));
+		disconnect(m_fileSysWatcher, SIGNAL(fileChanged(const QString &)), this, SLOT(fileUpdated(const QString &)));
+		delete m_fileSysWatcher;
+		m_fileSysWatcher = nullptr;
+	}
 	m_fileOnlyPaths.clear();
 	m_filesInOnlyPath.clear();
 	m_tasksQueue.clear();
@@ -311,3 +328,16 @@ void AutoCopySchedule::run()
 		}
 	}
 }
+
+void AutoCopySchedule::directoryUpdated(const QString &path)
+{
+	qDebug() << "dir" << path;
+	copyFileTask(path, UPDATEDIRECTORYTASK);
+}
+
+void AutoCopySchedule::fileUpdated(const QString& file)
+{
+	qDebug() << "file" << file;
+	copyFileTask(file, COPYFILETASK);
+}
+
