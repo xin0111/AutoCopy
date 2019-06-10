@@ -196,19 +196,19 @@ void AutoCopySchedule::exportFileRules(const QString& filePath, const AutoCopyPr
 
 void AutoCopySchedule::exportRulesBat(const QString& filePath, const AutoCopyPropertyList& rules)
 {
-	std::ofstream ofs;
-	ofs.open(filePath.toStdString(), std::ofstream::trunc);
-	int nAuto = rules.size();
-	for (int i = 0; i < nAuto; i++)
+	QFile file(filePath);
+	if (file.open(QIODevice::WriteOnly))
 	{
-		QString rule = QString("copy %1 %2").arg(rules.at(i).Key).arg(rules.at(i).Value.toString());	
-
-		ofs.write(rule.toStdString().c_str(), rule.size());
-		ofs<<"\n";
+		QTextStream out(&file);
+		int nAuto = rules.size();
+		for (int i = 0; i < nAuto; i++)
+		{
+			QString rule = QString("copy %1 %2").arg(rules.at(i).Key).arg(rules.at(i).Value.toString());
+			out << rule  << "\n";			
+		}
+		file.close();
+		sig_tipMessage(QString::fromLocal8Bit("导出完成."));
 	}	
-	ofs.close();
-
-	sig_tipMessage(QString::fromLocal8Bit("导出完成."));
 }
 
 void AutoCopySchedule::updateDirFilesWatcher(const QString& root)
