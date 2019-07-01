@@ -45,6 +45,7 @@ private slots:
 	void resetDisplay();
 protected:
 	void changeEvent(QEvent *) override;
+	void closeEvent(QCloseEvent *event) override;
 private:
 	QTextCharFormat ErrorFormat;
 	QTextCharFormat MessageFormat;

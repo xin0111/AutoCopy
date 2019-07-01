@@ -75,8 +75,7 @@ void AutoCopySchedule::copyExist()
 	{
 		const AutoCopyProperty& pro = rules.at(i);
 		src = pro.Key;
-		QStringList destPath = checkCopyFile(src);
-		if (!checkExists(destPath)) continue;
+		
 		QFileInfo srcInfo(src);		
 		if (srcInfo.isDir())
 		{
@@ -97,8 +96,6 @@ void AutoCopySchedule::copyExist()
 	{
 		const AutoCopyProperty& pro = rules.at(i);
 		src = pro.Key;
-		QStringList destPath = checkCopyFile(src);
-		if (!checkExists(destPath)) continue;
 		
 		addWatcher(src);
 	
@@ -259,8 +256,8 @@ void AutoCopySchedule::copyFile(const QString& from)
 	QFile file(from);	
 	for (int i = 0; i < dest.size();i++)
 	{
-		if (!dest.at(i).isEmpty() && QFile::exists(from) &&
-			file.open(QFile::ReadOnly))
+		auto aaa = dest.at(i);
+		if (!dest.at(i).isEmpty() && QFile::exists(from) )
 		{
 			QString strMsg = QString("Copy %1 \n\t to %2").
 				arg(from).arg(dest.at(i));
@@ -345,13 +342,4 @@ void AutoCopySchedule::fileUpdated(const QString& file)
 	copyFileTask(file, COPYFILETASK);
 }
 
-bool AutoCopySchedule::checkExists(QStringList paths)
-{
-	for (int i = 0; i < paths.size();i++)
-	{
-		if (!QFile::exists(paths.at(i)))
-			return false;
-	}
-	return true;
-}
 

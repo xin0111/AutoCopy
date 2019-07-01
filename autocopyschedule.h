@@ -37,7 +37,6 @@ public:
 	void resetSchedule();
 	QStringList currentWatchPath();
 
-	bool checkExists(QStringList paths);
 signals:
 	void sig_copyMsg(const QString& msg);
 	void sig_errorMsg(const QString& error);

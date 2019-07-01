@@ -9,9 +9,12 @@
 #include <QShortcut>
 #include <QTime>
 #include <QSettings>
+#include <QCloseEvent>
+
 #include "Tools.h"
 #include "autocopyschedule.h"
 #include "autocopy.h"
+
 
 
 AutoCopyWidget::AutoCopyWidget(QWidget *parent)
@@ -323,8 +326,14 @@ void AutoCopyWidget::enableTrayIcon()
 
 void AutoCopyWidget::changeEvent(QEvent *e)
 {
-	if (e->type() == QEvent::WindowStateChange && this->isMinimized())
-	{
-		this->hide();
-	}
+	//if (e->type() == QEvent::WindowStateChange && this->isMinimized())
+	//{//×îÐ¡»¯Òþ²Ø
+	//	this->hide();
+	//}
+}
+
+void AutoCopyWidget::closeEvent(QCloseEvent *event)
+{
+	event->ignore();
+	this->hide();
 }
