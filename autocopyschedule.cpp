@@ -75,8 +75,8 @@ void AutoCopySchedule::copyExist()
 	{
 		const AutoCopyProperty& pro = rules.at(i);
 		src = pro.Key;
-		QString destPath = checkCopyFile(src);
-		if (!QFile::exists(destPath)) continue;
+		QStringList destPath = checkCopyFile(src);
+		if (!checkExists(destPath)) continue;
 		QFileInfo srcInfo(src);		
 		if (srcInfo.isDir())
 		{
@@ -97,8 +97,8 @@ void AutoCopySchedule::copyExist()
 	{
 		const AutoCopyProperty& pro = rules.at(i);
 		src = pro.Key;
-		QString destPath = checkCopyFile(src);
-		if (!QFile::exists(destPath)) continue;
+		QStringList destPath = checkCopyFile(src);
+		if (!checkExists(destPath)) continue;
 		
 		addWatcher(src);
 	
@@ -255,43 +255,47 @@ void AutoCopySchedule::copyFileTask(const QString& filePath, emTaskType eType/*=
 
 void AutoCopySchedule::copyFile(const QString& from)
 {
-	const QString& dest = checkCopyFile(from);
+	const QStringList& dest = checkCopyFile(from);
 	QFile file(from);	
-	if (!dest.isEmpty() && QFile::exists(from) &&
-		file.open(QFile::ReadOnly))
+	for (int i = 0; i < dest.size();i++)
 	{
-		QString strMsg = QString("Copy %1 \n\t to %2").
-			arg(from).arg(dest);
-		QString error;
-		if (!CTools::copyFileToPath(from, dest, error))
+		if (!dest.at(i).isEmpty() && QFile::exists(from) &&
+			file.open(QFile::ReadOnly))
 		{
-			emit sig_errorMsg(strMsg + QString("  failed : %3").arg(error));
-		}
-		else
-		{
-			emit sig_copyMsg(strMsg);
+			QString strMsg = QString("Copy %1 \n\t to %2").
+				arg(from).arg(dest.at(i));
+			QString error;
+			if (!CTools::copyFileToPath(from, dest.at(i), error))
+			{
+				emit sig_errorMsg(strMsg + QString("  failed : %3").arg(error));
+			}
+			else
+			{
+				emit sig_copyMsg(strMsg);
+			}
 		}
 	}
 }
 
-QString AutoCopySchedule::checkCopyFile(const QString& from)
+QStringList AutoCopySchedule::checkCopyFile(const QString& from)
 {
 	AutoCopyPropertyList& propList = m_model->properties();
+	QStringList copyToDirs;
 	for each (const AutoCopyProperty& var in propList)
 	{
 		if (QRegExp(var.Key + ".*").exactMatch(from))
 		{
 			QFileInfo keyInfo(var.Key);
 			QString keyPath = keyInfo.isDir() ? var.Key : keyInfo.absolutePath();
-			if (keyPath == from)
-				return var.Value.toString();
+			if (keyPath == from)				
+				copyToDirs.push_back(var.Value.toString());
 			QFileInfo fromInfo(from);
 			QString fromPath = fromInfo.isDir() ? from : fromInfo.absolutePath();
 			
-			return var.Value.toString();
+			copyToDirs.push_back(var.Value.toString());
 		}
 	}
-	return QString();
+	return copyToDirs;
 }
 
 void AutoCopySchedule::resetSchedule()
@@ -339,5 +343,15 @@ void AutoCopySchedule::fileUpdated(const QString& file)
 {
 	qDebug() << "file" << file;
 	copyFileTask(file, COPYFILETASK);
+}
+
+bool AutoCopySchedule::checkExists(QStringList paths)
+{
+	for (int i = 0; i < paths.size();i++)
+	{
+		if (!QFile::exists(paths.at(i)))
+			return false;
+	}
+	return true;
 }
 

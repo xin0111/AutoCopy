@@ -32,11 +32,12 @@ public:
 	void copyFileTask(const QString& filePath, emTaskType eType);
 	void copyFile(const QString& from);
 	void updateDirFilesWatcher(const QString& root);
-	QString checkCopyFile(const QString& from);
+	QStringList checkCopyFile(const QString& from);
 	//ÖØÖÃ
 	void resetSchedule();
 	QStringList currentWatchPath();
 
+	bool checkExists(QStringList paths);
 signals:
 	void sig_copyMsg(const QString& msg);
 	void sig_errorMsg(const QString& error);
