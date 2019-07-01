@@ -259,6 +259,9 @@ void AutoCopySchedule::copyFile(const QString& from)
 		auto aaa = dest.at(i);
 		if (!dest.at(i).isEmpty() && QFile::exists(from) )
 		{
+			if (!file.open((QFile::ReadOnly))) continue;
+			file.close();
+
 			QString strMsg = QString("Copy %1 \n\t to %2").
 				arg(from).arg(dest.at(i));
 			QString error;
